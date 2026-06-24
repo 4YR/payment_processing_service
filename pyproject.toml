@@ -1,0 +1,36 @@
+[project]
+name = "payment-processing-service"
+version = "0.1.0"
+description = "Async payment processing microservice"
+requires-python = ">=3.12"
+dependencies = [
+    "aio-pika>=9.6.2",
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "fastapi>=0.138.0",
+    "faststream[rabbit]>=0.7.1",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.3.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "tenacity>=8.0.0",
+    "structlog>=24.0.0",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "coverage>=7.0.0",
+    "mypy>=2.0.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "testcontainers[postgres,rabbitmq]>=4.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.0.0",
+    "mypy>=2.0.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "testcontainers[postgres,rabbitmq]>=4.0.0",
+]
