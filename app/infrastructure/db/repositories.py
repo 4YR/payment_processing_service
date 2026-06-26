@@ -1,5 +1,6 @@
+from datetime import datetime, timezone
 import uuid
-from sqlalchemy import select
+from sqlalchemy import select, update
 from app.domain.payment import Payment
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,3 +70,35 @@ class SQLAlchemyOutboxRepository(AbstractOutboxRepository):
             payload=event.model_dump(mode="json"),
         )
         self.session.add(db_model)
+
+    async def get_unprocessed_batch(
+        self,
+        batch_size: int,
+    ) -> list[OutboxMessageModel]:
+        """
+        Получает батч необработанных сообщений из outbox.
+
+        Использует FOR UPDATE SKIP LOCKED для безопасного конкурентного чтения
+        (несколько worker'ов не будут обрабатывать одно и то же сообщение).
+        """
+        stmt = (
+            select(OutboxMessageModel)
+            .where(OutboxMessageModel.processed_at.is_(None))
+            .order_by(OutboxMessageModel.created_at)
+            .limit(batch_size)
+            .with_for_update(skip_locked=True)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def mark_as_processed(
+        self,
+        message_ids: list[uuid.UUID],
+    ) -> None:
+        """Помечает сообщения как обработанные."""
+        stmt = (
+            update(OutboxMessageModel)
+            .where(OutboxMessageModel.id.in_(message_ids))
+            .values(processed_at=datetime.now(timezone.utc))
+        )
+        await self.session.execute(stmt)
