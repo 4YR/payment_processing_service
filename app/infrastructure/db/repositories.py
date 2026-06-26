@@ -44,6 +44,24 @@ class SQLAlchemyPaymentRepository(AbstractPaymentRepository):
         db_model = result.scalar_one_or_none()
         return self._to_domain(db_model) if db_model else None
 
+    async def update(self, payment: Payment) -> None:
+        """Обновляет существующий платеж в БД."""
+        stmt = select(PaymentModel).where(PaymentModel.id == payment.id)
+        result = await self.session.execute(stmt)
+        db_model = result.scalar_one_or_none()
+
+        if not db_model:
+            raise ValueError(f"Payment with id {payment.id} not found for update")
+
+        db_model.amount = payment.amount
+        db_model.currency = payment.currency
+        db_model.description = payment.description
+        db_model.metadata_ = payment.metadata
+        db_model.status = payment.status
+        db_model.idempotency_key = payment.idempotency_key
+        db_model.webhook_url = payment.webhook_url
+        db_model.updated_at = payment.updated_at
+
     def _to_domain(self, model: PaymentModel) -> Payment:
         return Payment(
             id=model.id,
