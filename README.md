@@ -225,7 +225,7 @@ uv run python -m outbox_worker.worker
 uv run pytest -v
 ```
 
-*Тесты требуют запущенный Docker (используют Testcontainers для PostgreSQL).*
+
 
 ## Структура проекта
 
