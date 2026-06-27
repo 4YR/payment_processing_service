@@ -51,6 +51,7 @@ app.add_middleware(
 
 app.include_router(payments.router, prefix="/api/v1")
 
+
 @app.get("/api/health", tags=["Health"])
 async def health_check():
     """Health check endpoint."""

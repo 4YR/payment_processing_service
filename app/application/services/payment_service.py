@@ -1,5 +1,4 @@
 import uuid
-from typing import Self
 import structlog
 
 from app.application.dtos import CreatePaymentRequest

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import structlog
 
 from app.application.ports.unit_of_work import AbstractUnitOfWork
-from app.domain.payment import Payment, PaymentStatus
+from app.domain.payment import PaymentStatus
 from app.domain.events import PaymentCreatedEvent
 from app.infrastructure.webhooks.client import WebhookClient, WebhookDeliveryError
 

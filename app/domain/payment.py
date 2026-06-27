@@ -15,7 +15,7 @@ class PaymentStatus(str, Enum):
 
 class Payment(BaseModel):
     """Доменная сущность Платежа."""
-    
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     amount: Decimal
     currency: str

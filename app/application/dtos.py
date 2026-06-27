@@ -24,6 +24,7 @@ class CreatePaymentRequest(BaseModel):
 
 class PaymentResponse(BaseModel):
     """Схема ответа с информацией о платеже."""
+
     id: uuid.UUID
     amount: Decimal
     currency: str
@@ -39,6 +40,7 @@ class PaymentResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     """RFC 7807 Problem Details for error responses."""
+
     type: str = "about:blank"
     title: str
     status: int
@@ -48,5 +50,6 @@ class ErrorResponse(BaseModel):
 
 class IdempotencyError(BaseModel):
     """Ошибка при дублировании idempotency key."""
+
     existing_payment_id: uuid.UUID
     message: str = "Payment with this idempotency key already exists"

@@ -1,7 +1,6 @@
 # tests/unit/test_domain.py
 import uuid
 from decimal import Decimal
-import pytest
 from app.domain.payment import Payment, PaymentStatus
 from app.domain.events import PaymentCreatedEvent
 

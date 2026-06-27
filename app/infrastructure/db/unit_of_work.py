@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.ports.unit_of_work import AbstractUnitOfWork
 from app.infrastructure.db.session import async_session_factory
 from app.infrastructure.db.repositories import (
-    SQLAlchemyPaymentRepository, 
+    SQLAlchemyPaymentRepository,
     SQLAlchemyOutboxRepository,
 )
 
@@ -16,7 +16,7 @@ class SQLAlchemyUnitOfWork(AbstractUnitOfWork):
         self.payments = SQLAlchemyPaymentRepository(self.session)
         self.outbox = SQLAlchemyOutboxRepository(self.session)
         return await super().__aenter__()
-    
+
     async def __aexit__(self, *args):
         await super().__aexit__(*args)
         await self.session.close()
