@@ -13,7 +13,7 @@ Client → POST /api/v1/payments (Idempotency-Key, X-API-Key)
                       ↓
      ┌──────────────────────────────────┐
      │  Атомарная транзакция:           │
-     │  1. Сохраняем Payment (pending)   │
+     │  1. Сохраняем Payment (pending)  │
      │  2. Сохраняем OutboxMessage      │
      └──────────────────────────────────┘
                       ↓
