@@ -29,6 +29,7 @@ dev = [
 
 [dependency-groups]
 dev = [
+    "anyio>=4.14.0",
     "coverage>=7.0.0",
     "mypy>=2.0.0",
     "pytest>=8.0.0",

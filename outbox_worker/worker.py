@@ -3,7 +3,9 @@ import logging
 import signal
 import sys
 from typing import Any
+import aio_pika
 import structlog
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from app.config import settings
 from app.infrastructure.db.session import async_session_factory
@@ -127,18 +129,36 @@ def handle_shutdown(signum: int, frame: Any) -> None:
     shutdown_event.set()
 
 
+@retry(
+    stop=stop_after_attempt(10),
+    wait=wait_fixed(3),
+    retry=retry_if_exception_type(
+        (
+            aio_pika.exceptions.AMQPConnectionError,
+            ConnectionError,
+            OSError,
+        )
+    ),
+    before_sleep=lambda retry_state: logger.warning(
+        "RabbitMQ not ready, retrying...", attempt=retry_state.attempt_number
+    ),
+    reraise=True,
+)
+async def connect_to_rabbitmq() -> None:
+    """Подключается к RabbitMQ с повторными попытками."""
+    logger.info("Setting up RabbitMQ topology...")
+    await setup_rabbitmq_topology()
+    logger.info("Connecting to RabbitMQ broker...")
+    await broker.connect()
+    logger.info("Connected to RabbitMQ successfully")
+
+
 async def main() -> None:
     """Главная функция Outbox Worker."""
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
 
-    logger.info("Setting up RabbitMQ topology...")
-    await setup_rabbitmq_topology()
-    logger.info("RabbitMQ topology created successfully")
-
-    logger.info("Connecting to RabbitMQ broker...")
-    await broker.connect()
-    logger.info("Connected to RabbitMQ successfully")
+    await connect_to_rabbitmq()
 
     try:
         await outbox_worker_loop()

@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, Security, status, Header, HTTPException
+from fastapi import APIRouter, Depends, status, Header, HTTPException
 import structlog
 
 from app.application.dtos import CreatePaymentRequest, PaymentResponse, ErrorResponse
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 async def create_payment(
     request: CreatePaymentRequest,
     uow: AbstractUnitOfWork = Depends(get_uow),
-    _: str = Security(verify_api_key),
+    _: str = Depends(verify_api_key),
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
 ):
     """
@@ -60,7 +60,7 @@ async def create_payment(
 async def get_payment(
     payment_id: uuid.UUID,
     uow: AbstractUnitOfWork = Depends(get_uow),
-    _: str = Security(verify_api_key),
+    _: str = Depends(verify_api_key),
 ):
     """Получает информацию о платеже по ID."""
     service = PaymentService(uow)

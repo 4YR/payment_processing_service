@@ -30,13 +30,15 @@ services:
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 30s 
 
   api:
     build: .
     container_name: payment_api
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: >
+      sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/payments
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
@@ -55,7 +57,7 @@ services:
   consumer:
     build: .
     container_name: payment_consumer
-    command: uv run python -m consumer.main
+    command: sh -c "sleep 10 && uv run python -m consumer.main"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/payments
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
@@ -71,7 +73,7 @@ services:
   outbox-worker:
     build: .
     container_name: payment_outbox_worker
-    command: uv run python -m outbox_worker.worker
+    command: sh -c "sleep 10 && uv run python -m outbox_worker.worker"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/payments
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/

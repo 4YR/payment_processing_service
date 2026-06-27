@@ -1,38 +1,25 @@
 from typing import AsyncGenerator
-from fastapi import Depends, HTTPException, Security, status, Header
-from fastapi.security import APIKeyHeader
+from fastapi import HTTPException, status, Header
 
 from app.application.ports.unit_of_work import AbstractUnitOfWork
 from app.infrastructure.db.unit_of_work import SQLAlchemyUnitOfWork
 from app.config import settings
 
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
 
 async def get_uow() -> AsyncGenerator[AbstractUnitOfWork, None]:
     """Dependency для получения UnitOfWork."""
     uow = SQLAlchemyUnitOfWork()
-    try:
+    async with uow:
         yield uow
-    finally:
-        if hasattr(uow, "session"):
-            await uow.session.close()
 
 
-async def verify_api_key(api_key: str = Header(..., alias="X-API-Key")) -> None:
+async def verify_api_key(
+    x_api_key: str | None = Header(None, alias="X-API-Key")
+) -> str:
     """Dependency для проверки API ключа."""
-    if not api_key:
+    if not x_api_key or x_api_key != settings.api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing X-API-Key header",
-            headers={"WWW-Authenticate": "ApiKey"},
+            detail="Invalid or missing API key",
         )
-
-    if api_key != settings.api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key",
-            headers={"WWW-Authenticate": "ApiKey"},
-        )
-
-    return api_key
+    return x_api_key

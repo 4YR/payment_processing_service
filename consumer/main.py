@@ -7,6 +7,7 @@ from typing import Any
 import structlog
 from faststream import FastStream, Context
 from faststream.rabbit import RabbitBroker, RabbitExchange, RabbitQueue, ExchangeType
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from app.config import settings
 from app.infrastructure.db.unit_of_work import SQLAlchemyUnitOfWork
@@ -34,7 +35,8 @@ def setup_logging() -> None:
         cache_logger_on_first_use=False,
     )
 
-logger = structlog.get_logger()    
+
+logger = structlog.get_logger()
 
 
 # Настраиваем broker и приложение FastStream
@@ -46,7 +48,7 @@ payments_exchange = RabbitExchange(
     name="payments",
     type=ExchangeType.TOPIC,
     durable=True,
-) 
+)
 
 payments_new_queue = RabbitQueue(
     name="payments.new",
@@ -71,7 +73,7 @@ async def process_payment_event(
 ) -> None:
     """
     Обрабатывает событие создания платежа из очереди payments.new.
-    
+
     Если обработка упадет после всех retry - FastStream nack'ает сообщение,
     и RabbitMQ отправит его в payments.new.dlq.
     """
@@ -115,8 +117,9 @@ async def process_payment_event(
 @app.after_shutdown
 async def cleanup() -> None:
     """Очистка ресурсов после остановки consumer'а."""
-    await webhook_client.close()        
+    await webhook_client.close()
     logger.info("Consumer resources cleaned")
+
 
 shutdown_event = asyncio.Event()
 
@@ -126,13 +129,29 @@ def handle_shutdown(signum: int, frame: Any) -> None:
     shutdown_event.set()
 
 
+@retry(
+    stop=stop_after_attempt(10),
+    wait=wait_fixed(3),
+    retry=retry_if_exception_type(Exception),
+    before_sleep=lambda retry_state: logger.warning(
+        "Cannot start consumer, retrying...",
+        attempt=retry_state.attempt_number,
+        error=str(retry_state.outcome.exception()),
+    ),
+    reraise=True,
+)
+async def start_consumer() -> None:
+    """Запускает consumer с повторными попытками."""
+    logger.info("Starting payment consumer...")
+    await app.run()
+
+
 async def main() -> None:
     """Главная функция consumer'а."""
     signal.signal(signal.SIGINT, handle_shutdown)
     signal.signal(signal.SIGTERM, handle_shutdown)
-    
-    logger.info("Starting payment consumer...")
-    await app.run()
+
+    await start_consumer()
 
 
 if __name__ == "__main__":
@@ -142,5 +161,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"CRITICAL CONSUMER ERROR: {type(e).__name__}: {e}", flush=True)
         import traceback
+
         traceback.print_exc()
-        sys.exit(1)    
+        sys.exit(1)
